@@ -68,14 +68,13 @@ wss.on('connection', (conn, req) => {
           if (roomUsers.size === 0) {
             const ymap = docs.get(room)?.getMap('canvasState');
             if (ymap) {
-              await saveYMapJSONToBackend(room, ymap);
+              await saveYMapJSONToBackend(room, ymap, accessToken);
             }
           }
 
           if (finalContent?.content) {
             try {
               const response = await axios.patch(
-                // `${process.env.BACKEND_URL}/room/content/update`,
                 `${process.env.BACKEND_URL}/api/v1/documents/update-document`,
                 {
                   // sessionId: room,
@@ -115,21 +114,21 @@ function exportYMapAsJSON(yobjectmap) {
 
   return result;
 }
-async function saveYMapJSONToBackend(room, ymap) {
+async function saveYMapJSONToBackend(room, ymap, accessToken) {
   if (ymap) {
     const jsonObj = exportYMapAsJSON(ymap);
     if (Object.keys(jsonObj).length > 0) {
       const jsonString = JSON.stringify(jsonObj);
       try {
         const response = await axios.patch(
-          `${process.env.BACKEND_URL}/room/content/update`,
+          `${process.env.BACKEND_URL}/api/v1/documents/update-document`,
           {
             sessionId: room,
             content: jsonString,
           },
           {
             headers: {
-              'Authorization': `Bearer ${process.env.SECRET_KEY}`
+              'Authorization': `Bearer ${accessToken}`
             }
           }
         );
@@ -138,21 +137,6 @@ async function saveYMapJSONToBackend(room, ymap) {
       } catch (error) {
         console.log("ERROR::", error);
         console.error(`❌ Error saving YMap JSON for room ${room}:`, error.message);
-      }
-
-      try {
-        const response = await axios.post(
-          `${process.env.BACKEND_URL}/session/end/${room}`, {},
-          {
-            headers: {
-              'Authorization': `Bearer ${process.env.SECRET_KEY}`
-            }
-          }
-        );
-
-        console.log("Session activity save and dead", response.data);
-      } catch (error) {
-        console.error(`❌ Failed to dead the session ${room}:`, error.message);
       }
     }
   }
