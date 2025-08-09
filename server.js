@@ -70,14 +70,13 @@ wss.on('connection', (conn, req) => {
           if (roomUsers.size === 0) {
             const ymap = docs.get(room)?.getMap('canvasState');
             if (ymap) {
-              await saveYMapJSONToBackend(room, ymap);
+              await saveYMapJSONToBackend(room, ymap, accessToken);
             }
           }
 
           if (finalContent?.content) {
             try {
               const response = await axios.patch(
-                // `${process.env.BACKEND_URL}/room/content/update`,
                 `${process.env.BACKEND_URL}/api/v1/documents/update-document`,
                 {
                   // sessionId: room,
@@ -132,7 +131,7 @@ async function saveYMapJSONToBackend(room, ymap) {
           },
           {
             headers: {
-              'Authorization': `Bearer ${process.env.SECRET_KEY}`
+              'Authorization': `Bearer ${accessToken}`
             }
           }
         );
