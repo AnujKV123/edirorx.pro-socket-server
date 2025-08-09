@@ -27,6 +27,7 @@ wss.on('connection', (conn, req) => {
   setupWSConnection(conn, req, { docName: room });
 
   const ydoc = docs.get(room);
+  const yChatArray = ydoc.getArray('chat');
 
   if (!roomUsersMap.has(room)) {
     roomUsersMap.set(room, new Set());
@@ -39,7 +40,8 @@ wss.on('connection', (conn, req) => {
       try {
         const xmlFragment = ydoc.getXmlFragment(field);
         const xmlContent = xmlFragment.toString();
-        if (xmlContent) return { type: 'xml', content: xmlContent };
+        const chatArray = yChatArray.toArray();
+        if (xmlContent) return { type: 'xml', content: xmlContent, chat: chatArray };
       } catch { }
 
       try {
@@ -68,18 +70,20 @@ wss.on('connection', (conn, req) => {
           if (roomUsers.size === 0) {
             const ymap = docs.get(room)?.getMap('canvasState');
             if (ymap) {
-              await saveYMapJSONToBackend(room, ymap, accessToken);
+              await saveYMapJSONToBackend(room, ymap);
             }
           }
 
           if (finalContent?.content) {
             try {
               const response = await axios.patch(
+                // `${process.env.BACKEND_URL}/room/content/update`,
                 `${process.env.BACKEND_URL}/api/v1/documents/update-document`,
                 {
                   // sessionId: room,
                   documentId: room,
                   content: finalContent.content,
+                  chat: finalContent.chat
                 }, {
                 headers: {
                   'Authorization': `Bearer ${accessToken}`
@@ -114,7 +118,7 @@ function exportYMapAsJSON(yobjectmap) {
 
   return result;
 }
-async function saveYMapJSONToBackend(room, ymap, accessToken) {
+async function saveYMapJSONToBackend(room, ymap) {
   if (ymap) {
     const jsonObj = exportYMapAsJSON(ymap);
     if (Object.keys(jsonObj).length > 0) {
@@ -128,7 +132,7 @@ async function saveYMapJSONToBackend(room, ymap, accessToken) {
           },
           {
             headers: {
-              'Authorization': `Bearer ${accessToken}`
+              'Authorization': `Bearer ${process.env.SECRET_KEY}`
             }
           }
         );
